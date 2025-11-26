@@ -5,15 +5,11 @@ import path from "path";
 import db from "../../../config/db.js";
 
 const program = new Command();
-
 program.version("1.0.0");
 
 // --- CONTROLLER HELPER ---
 function createController(name) {
-  if (!name) {
-    console.log("Please provide a controller name!");
-    return;
-  }
+  if (!name) return console.log("Please provide a controller name!");
 
   const controllerName = name.endsWith("Controller")
     ? name
@@ -26,10 +22,8 @@ function createController(name) {
     `${controllerName}.js`
   );
 
-  if (fs.existsSync(filePath)) {
-    console.log(`Controller ${controllerName} already exists!`);
-    return;
-  }
+  if (fs.existsSync(filePath))
+    return console.log(`Controller ${controllerName} already exists!`);
 
   const content = `export default class ${controllerName} {
   index(req, res) { res.send('Index method'); }
@@ -48,25 +42,19 @@ function createController(name) {
 
 // --- MODEL HELPER ---
 function createModel(name) {
-  if (!name) {
-    console.log("Please provide a model name!");
-    return;
-  }
+  if (!name) return console.log("Please provide a model name!");
 
   const modelName = name.endsWith("Model") ? name : `${name}Model`;
   const filePath = path.join(process.cwd(), "app", "Models", `${modelName}.js`);
 
-  if (fs.existsSync(filePath)) {
-    console.log(`Model ${modelName} already exists!`);
-    return;
-  }
+  if (fs.existsSync(filePath))
+    return console.log(`Model ${modelName} already exists!`);
 
   const content = `export default class ${modelName} {
   constructor() {
     // Define your properties here
   }
 
-  // Example methods
   find(id) {
     // Fetch a record by id
   }
@@ -82,21 +70,17 @@ function createModel(name) {
   console.log(`Model created: ${filePath}`);
 }
 
+// --- MIGRATION HELPER ---
 function createMigration(name) {
-  if (!name) {
-    console.log("Please provide a migration name!");
-    return;
-  }
+  if (!name) return console.log("Please provide a migration name!");
 
   const timestamp = Date.now();
   const fileName = `${timestamp}_${name}.js`;
   const migrationsPath = path.join(process.cwd(), "database", "migrations");
   const filePath = path.join(migrationsPath, fileName);
 
-  if (fs.existsSync(filePath)) {
-    console.log(`Migration already exists: ${fileName}`);
-    return;
-  }
+  if (fs.existsSync(filePath))
+    return console.log(`Migration already exists: ${fileName}`);
 
   const content = `export async function up(db) {
   await db.none(\`
@@ -114,27 +98,20 @@ export async function down(db) {
 
   fs.mkdirSync(migrationsPath, { recursive: true });
   fs.writeFileSync(filePath, content, "utf-8");
-
   console.log(`Migration created: ${filePath}`);
 }
 
-// -- Migration Helper ---
+// --- RUN ALL MIGRATIONS ---
 async function runMigrations() {
   const migrationsPath = path.join(process.cwd(), "database", "migrations");
 
-  if (!fs.existsSync(migrationsPath)) {
-    console.log("No migrations folder found.");
-    return;
-  }
+  if (!fs.existsSync(migrationsPath))
+    return console.log("No migrations folder found.");
 
   const files = fs
     .readdirSync(migrationsPath)
     .filter((file) => file.endsWith(".js"));
-
-  if (files.length === 0) {
-    console.log("No migration files found.");
-    return;
-  }
+  if (!files.length) return console.log("No migration files found.");
 
   console.log("🔄 Running migrations...\n");
 
@@ -143,7 +120,6 @@ async function runMigrations() {
 
     try {
       const migration = await import(`file://${filePath}`);
-
       if (typeof migration.up === "function") {
         await migration.up(db);
         console.log(`✅ Migrated: ${file}`);
@@ -160,58 +136,49 @@ async function runMigrations() {
   console.log("\n✅ All migrations processed.");
 }
 
-// -- Fresh Migration Helper ---
-
+// --- FRESH MIGRATIONS ---
 async function freshMigrations() {
   const migrationsPath = path.join(process.cwd(), "database", "migrations");
 
-  if (!fs.existsSync(migrationsPath)) {
-    console.log("No migrations folder found.");
-    return;
-  }
+  if (!fs.existsSync(migrationsPath))
+    return console.log("No migrations folder found.");
 
   const files = fs
     .readdirSync(migrationsPath)
     .filter((file) => file.endsWith(".js"))
     .sort();
+  if (!files.length) return console.log("No migration files found.");
 
-  if (files.length === 0) {
-    console.log("No migration files found.");
-    return;
-  }
+  // 1️⃣ Drop all tables
+  console.log("💣 Dropping ALL existing tables...\n");
+  const tables = await db.manyOrNone(
+    `SELECT tablename FROM pg_tables WHERE schemaname = 'public';`
+  );
 
-  console.log("💣 Dropping all tables...\n");
-
-  // Run DOWN in reverse order
-  for (const file of [...files].reverse()) {
-    const filePath = path.join(migrationsPath, file);
-
+  for (const { tablename } of tables) {
     try {
-      const migration = await import(`file://${filePath}`);
-
-      if (typeof migration.down === "function") {
-        await migration.down(db);
-        console.log(`🗑 Dropped: ${file}`);
-      }
-    } catch (error) {
-      console.error(`❌ Failed dropping: ${file}`);
-      console.error(error.message);
-      return;
+      await db.none(`DROP TABLE IF EXISTS "${tablename}" CASCADE;`);
+      console.log(`🗑 Dropped table: ${tablename}`);
+    } catch (err) {
+      console.error(`❌ Failed dropping table: ${tablename}`);
     }
   }
 
-  console.log("\n🔄 Re-running migrations...\n");
+  console.log("\n✅ All tables dropped!\n");
 
-  // Run UP in normal order
+  // 2️⃣ Run migrations in UP order
+  console.log("🔄 Running migrations...\n");
+
   for (const file of files) {
     const filePath = path.join(migrationsPath, file);
 
     try {
       const migration = await import(`file://${filePath}`);
-
       if (typeof migration.up === "function") {
         await migration.up(db);
         console.log(`✅ Migrated: ${file}`);
+      } else {
+        console.log(`⚠️ Skipped (no up function): ${file}`);
       }
     } catch (error) {
       console.error(`❌ Migration failed: ${file}`);
@@ -242,11 +209,11 @@ program
 program
   .command("migrate")
   .description("Run all database migrations")
-  .action(() => runMigrations());
+  .action(async () => await runMigrations());
 
 program
   .command("migrate:fresh")
   .description("Drop all tables and re-run all migrations")
-  .action(() => freshMigrations());
+  .action(async () => await freshMigrations());
 
 program.parse(process.argv);
