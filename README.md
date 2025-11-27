@@ -1,6 +1,8 @@
 <img src="https://res.cloudinary.com/dhigfwson/image/upload/v1763634040/favicon_yxbyqj.png" alt="LaraExpress mini-framework logo" width="100" height="100">
 
-# LaraExpress Mini-Framework(..Still in development stage)
+# LaraExpress Mini-Framework
+
+(..Still in development stage)
 
 A lightweight Node.js + Express + Edge.js framework inspired by Laravel, designed for quick SSR projects with a familiar Blade-like syntax and clean MVC structure.
 
