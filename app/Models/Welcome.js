@@ -1,5 +1,8 @@
-export default class WelcomeModel {
+import BaseModel from "../Core/model/BaseModel.js";
+
+export default class Welcome extends BaseModel {
   constructor() {
+    super("welcome");
     this.data = {
       heading: "LaraExpress",
       subheading: "laravel inspired mini MVC framework",
