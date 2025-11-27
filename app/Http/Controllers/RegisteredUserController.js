@@ -1,8 +1,22 @@
-export default class RegisteredUserController {
-  index(req, res) { res.send('Index method'); }
-  show(req, res) { res.send('Show method'); }
-  create(req, res) { res.send('Create method'); }
-  store(req, res) { res.send('Store method'); }
-  update(req, res) { res.send('Update method'); }
-  destroy(req, res) { res.send('Destroy method'); }
+import BaseController from "../../Core/controller/BaseController.js";
+
+export default class RegisteredUserController extends BaseController {
+  index() {
+    this.send("Index method");
+  }
+  show() {
+    this.send("Show method");
+  }
+  create() {
+    this.send("Create method");
+  }
+  store() {
+    this.send("Store method");
+  }
+  update() {
+    this.send("Update method");
+  }
+  destroy() {
+    this.send("Destroy method");
+  }
 }

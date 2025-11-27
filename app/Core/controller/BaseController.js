@@ -4,11 +4,41 @@ export default class BaseController {
     this.res = res;
     this.next = next;
   }
+
   async view(template, data = {}) {
     try {
-      await this.res.render(template, { ...data });
+      return this.res.render(template, data);
     } catch (error) {
       this.next(error);
     }
+  }
+
+  async send(data) {
+    try {
+      return this.res.send(data);
+    } catch (error) {
+      this.next(error);
+    }
+  }
+
+  async json(data) {
+    try {
+      return this.res.json(data);
+    } catch (error) {
+      this.next(error);
+    }
+  }
+
+  status(code) {
+    this.res.status(code);
+    return this;
+  }
+
+  redirect(url) {
+    return this.res.redirect(url);
+  }
+
+  abort(code = 404, message = "Not Found") {
+    return this.res.status(code).send(message);
   }
 }

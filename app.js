@@ -1,14 +1,20 @@
 import express from "express";
 import { Edge } from "edge.js";
 import path from "path";
-
+import { fileURLToPath } from "url";
 import routes from "./app/Routes/web.js";
+import cookieParser from "cookie-parser";
+import verifyCsurf from "./app/Core/middleware/csrf.js";
 
 const app = express();
 const port = process.env.PORT || 8080;
-const currentDir = import.meta.dirname;
+// Use this way to still support old node js versions
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-app.use(express.static(path.join(currentDir, "public")));
+// Edge as view engine
+app.set("view engine", "edge");
+app.set("views", "./app/Views");
 
 // Create Edge instance with caching for production
 const edge = Edge.create({
@@ -29,8 +35,15 @@ app.engine("edge", async (filePath, data, callback) => {
   }
 });
 
-app.set("view engine", "edge");
-app.set("views", "./app/Views");
+app.use(express.static(path.join(__dirname, "public")));
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+app.use(verifyCsurf);
+
+app.use((req, res, next) => {
+  res.locals.csrfToken = req.csrfToken ? req.csrfToken() : "";
+  next();
+});
 
 app.use("/", routes);
 

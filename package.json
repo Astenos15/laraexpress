@@ -22,9 +22,11 @@
   "homepage": "https://github.com/Astenos15/laraexpress-v2#readme",
   "description": "",
   "dependencies": {
+    "@dr.pogodin/csurf": "^1.16.6",
     "@tailwindcss/cli": "^4.1.17",
     "browser-sync": "^3.0.4",
     "commander": "^14.0.2",
+    "cookie-parser": "^1.4.7",
     "dotenv": "^17.2.3",
     "edge.js": "^6.3.0",
     "express": "^5.1.0",
