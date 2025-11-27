@@ -34,6 +34,24 @@ app.set("views", "./app/Views");
 
 app.use("/", routes);
 
+// errors
+app.use((req, res) => {
+  res.status(404).render("errors/error", {
+    code: 404,
+    title: "Not Found",
+    message: "Oops! The page you are looking for does not exist.",
+  });
+});
+
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).render("errors/error", {
+    code: 500,
+    title: "Server Error",
+    message: "Something went wrong. Please try again later.",
+  });
+});
+
 app.listen(port, () => {
   console.log(`App is running on port ${port} `);
 });

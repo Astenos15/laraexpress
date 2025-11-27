@@ -2,19 +2,31 @@
 <!-- prettier-ignore -->
 @slot('main')
 <section class="grid place-items-center h-full">
-  <div class="flex flex-col justify-center items-center">
+  <div
+    class="flex flex-col justify-center items-center"
+    x-data="{ shown: false }"
+    x-intersect="shown = true"
+  >
     <h1
       class="lg:text-8xl font-black capitalize mb-4 bg-linear-to-r from-cyan-500 to-pink-500 text-transparent bg-clip-text text-animation"
+      x-show="shown"
+      x-transition.opacity.duration.2000ms
     >
       {{ data.heading }}
     </h1>
-    <p class="capitalize mb-4 lg:text-lg font-light">
+    <p
+      class="capitalize mb-4 lg:text-lg font-light"
+      x-show="shown"
+      x-transition.opacity.duration.2500ms
+    >
       {{ data.subheading }}
     </p>
     <a
       href="https://github.com/Astenos15/laraexpress"
       target="_blank"
       class="flex justify-center items-center py-1 px-6 bg-red-500 text-red-50 capitalize text-lg"
+      x-show="shown"
+      x-transition.opacity.duration.2900ms
       >learn more</a
     >
   </div>

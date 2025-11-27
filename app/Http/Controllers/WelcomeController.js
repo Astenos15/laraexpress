@@ -1,12 +1,9 @@
+import BaseController from "../../Core/controller/BaseController.js";
 import Welcome from "../../Models/WelcomeModel.js";
 
-export default class WelcomeController {
-  async index(req, res) {
-    try {
-      const data = await Welcome.all();
-      res.render("welcome", { data });
-    } catch (error) {
-      console.log(error);
-    }
+export default class WelcomeController extends BaseController {
+  async index() {
+    const data = await Welcome.all();
+    this.view("welcome", { data });
   }
 }
