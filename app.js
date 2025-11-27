@@ -6,6 +6,7 @@ import { fileURLToPath } from "url";
 import routes from "./app/Routes/web.js";
 import cookieParser from "cookie-parser";
 import verifyCsurf from "./app/Core/middleware/csrf.js";
+import methodOverride from "method-override";
 
 const app = express();
 const port = process.env.PORT || 8080;
@@ -40,11 +41,11 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(verifyCsurf);
-
 app.use((req, res, next) => {
   res.locals.csrfToken = req.csrfToken ? req.csrfToken() : "";
   next();
 });
+app.use(methodOverride("_method"));
 
 app.use("/", routes);
 
