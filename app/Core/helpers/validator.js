@@ -1,186 +1,109 @@
 import { body, validationResult } from "express-validator";
 
-/**
- * Validates request data using express-validator
- * Laravel-like validation helper for controllers
- *
- * @param {Object} req - Express request object
- * @param {Object|Array} rules - Validation rules object or express-validator chains array
- * @param {Object} customMessages - Custom error messages
- * @returns {Promise<Object>} Validated data or throws validation error
- *
- * @example
- * // Simple rules object
- * const data = await this.validate(this.req, {
- *   email: "required|email",
- *   password: "required|min:6",
- *   name: "required|string"
- * });
- *
- * // Or use express-validator chains directly
- * const data = await this.validate(this.req, [
- *   body('email').isEmail(),
- *   body('password').isLength({ min: 6 })
- * ]);
- */
+const validate = async (req, rules, defaultValues = {}) => {
+  const validators = [];
 
-const validate = async (req, rules, customMessages = {}) => {
-  let validationChains = [];
+  const pretty = (field) =>
+    field.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
 
-  // Handle string rules format (Laravel-like)
-  if (typeof rules === "object" && !Array.isArray(rules)) {
-    validationChains = Object.entries(rules).map(([field, ruleString]) => {
-      return parseRules(field, ruleString, customMessages);
-    });
-  }
-  // Handle express-validator chains directly
-  else if (Array.isArray(rules)) {
-    validationChains = rules;
-  }
+  for (const field in rules) {
+    const fieldRules = rules[field].split("|");
 
-  // Run all validations
-  await Promise.all(validationChains.map((chain) => chain.run(req)));
-
-  // Check for errors
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    const formattedErrors = {};
-    errors.array().forEach((error) => {
-      if (!formattedErrors[error.param]) {
-        formattedErrors[error.param] = [];
+    for (const rule of fieldRules) {
+      if (rule === "required") {
+        validators.push(
+          body(field)
+            .exists({ checkFalsy: true })
+            .withMessage(`${pretty(field)} is required.`)
+            .bail()
+            .trim()
+            .escape()
+        );
       }
-      formattedErrors[error.param].push(
-        customMessages[`${error.param}.${error.msg}`] || error.msg
-      );
-    });
 
+      if (rule.startsWith("min:")) {
+        const min = parseInt(rule.split(":")[1]);
+        validators.push(
+          body(field)
+            .isLength({ min })
+            .withMessage(`${pretty(field)} must be at least ${min} characters`)
+        );
+      }
+
+      if (rule.startsWith("max:")) {
+        const max = parseInt(rule.split(":")[1]);
+        validators.push(
+          body(field)
+            .isLength({ max })
+            .withMessage(`${pretty(field)} must not exceed ${max} characters`)
+        );
+      }
+
+      if (rule === "string") {
+        validators.push(
+          body(field)
+            .isString()
+            .withMessage(`${pretty(field)} must be a string`)
+        );
+      }
+
+      if (rule === "numeric") {
+        validators.push(
+          body(field)
+            .isNumeric()
+            .withMessage(`${pretty(field)} must be numeric`)
+        );
+      }
+
+      if (rule === "integer") {
+        validators.push(
+          body(field)
+            .isInt()
+            .withMessage(`${pretty(field)} must be an integer`)
+        );
+      }
+
+      if (rule === "email") {
+        validators.push(
+          body(field).isEmail().withMessage("Invalid email format")
+        );
+      }
+
+      if (rule === "confirmed") {
+        validators.push(
+          body(field).custom((value, { req }) => {
+            const confirmation = req.body[`${field}_confirmation`];
+            if (value !== confirmation) {
+              throw new Error(`${pretty(field)} does not match confirmation`);
+            }
+            return true;
+          })
+        );
+      }
+    }
+  }
+
+  // Run validators
+  for (const v of validators) {
+    await v.run(req);
+  }
+
+  const result = validationResult(req);
+
+  if (!result.isEmpty()) {
     const error = new Error("Validation failed");
     error.status = 422;
-    error.errors = formattedErrors.mapped();
+    error.validation = result.mapped();
     throw error;
   }
 
-  // Return validated data from request body
+  // Return validated data
   const validatedData = {};
-  if (typeof rules === "object" && !Array.isArray(rules)) {
-    Object.keys(rules).forEach((field) => {
-      validatedData[field] = req.body[field];
-    });
-  } else if (Array.isArray(rules)) {
-    // Extract field names from validation chains
-    rules.forEach((chain) => {
-      if (chain.builder && chain.builder.fields) {
-        chain.builder.fields.forEach((field) => {
-          validatedData[field] = req.body[field];
-        });
-      }
-    });
+  for (const field in rules) {
+    validatedData[field] = req.body[field] ?? defaultValues[field] ?? null;
   }
 
   return validatedData;
 };
 
-/**
- * Parse Laravel-like rule strings and return express-validator chain
- * Supports: required, email, min:6, max:20, string, numeric, etc.
- */
-const parseRules = (field, ruleString, customMessages = {}) => {
-  let chain = body(field);
-  const rules = ruleString.split("|").map((r) => r.trim());
-
-  rules.forEach((rule) => {
-    const [validator, ...params] = rule.split(":");
-
-    switch (validator) {
-      case "required":
-        chain = chain
-          .notEmpty()
-          .withMessage(
-            customMessages[`${field}.required`] || `${field} is required`
-          );
-        break;
-
-      case "email":
-        chain = chain
-          .isEmail()
-          .withMessage(
-            customMessages[`${field}.email`] || `${field} must be a valid email`
-          );
-        break;
-
-      case "min":
-        const minLength = parseInt(params[0]);
-        chain = chain
-          .isLength({ min: minLength })
-          .withMessage(
-            customMessages[`${field}.min`] ||
-              `${field} must be at least ${minLength} characters`
-          );
-        break;
-
-      case "max":
-        const maxLength = parseInt(params[0]);
-        chain = chain
-          .isLength({ max: maxLength })
-          .withMessage(
-            customMessages[`${field}.max`] ||
-              `${field} must not exceed ${maxLength} characters`
-          );
-        break;
-
-      case "string":
-        chain = chain
-          .isString()
-          .withMessage(
-            customMessages[`${field}.string`] || `${field} must be a string`
-          );
-        break;
-
-      case "numeric":
-        chain = chain
-          .isNumeric()
-          .withMessage(
-            customMessages[`${field}.numeric`] || `${field} must be numeric`
-          );
-        break;
-
-      case "integer":
-      case "int":
-        chain = chain
-          .isInt()
-          .withMessage(
-            customMessages[`${field}.integer`] || `${field} must be an integer`
-          );
-        break;
-
-      case "regex":
-        const pattern = params.join(":");
-        chain = chain
-          .matches(new RegExp(pattern))
-          .withMessage(
-            customMessages[`${field}.regex`] || `${field} format is invalid`
-          );
-        break;
-
-      case "unique":
-        // Can be extended for database unique validation
-        break;
-
-      case "confirmed":
-        chain = chain.custom((value, { req }) => {
-          if (value !== req.body[`${field}_confirmation`]) {
-            throw new Error(`${field} confirmation does not match`);
-          }
-        });
-        break;
-
-      default:
-        break;
-    }
-  });
-
-  return chain;
-};
-
 export default validate;
-export { body, validationResult };
