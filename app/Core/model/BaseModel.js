@@ -1,6 +1,6 @@
 import db from "../../../config/db.js";
 
-const allowedTables = ["users", "products"]; // whitelist
+const allowedTables = ["welcome", "users", "products"]; // whitelist
 
 export default class BaseModel {
   constructor(table) {

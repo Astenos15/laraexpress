@@ -8,21 +8,11 @@ export default class ProductController extends BaseController {
   }
   async show() {
     const product = await Product.find(Number(this.req.params.id));
-
-    if (!product) {
-      return this.view("errors/error", {
-        code: 404,
-        title: "Not Found",
-        message: "Product not found or might be deleted..",
-        backUrl: "/products",
-        backMessage: "Go Back",
-      });
-    }
-
+    if (!product) return this.notFound("Product not found", "/products");
     return this.view("products/show", { product });
   }
 
-  create() {
+  async create() {
     this.view("products/create");
   }
 
@@ -51,11 +41,11 @@ export default class ProductController extends BaseController {
     }
   }
 
-  update() {
+  async update() {
     this.send("Update method");
   }
 
-  destroy() {
+  async destroy() {
     this.send("Destroy method");
   }
 }

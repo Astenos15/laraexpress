@@ -48,6 +48,16 @@ export default class BaseController {
     return global.dd(this.res, data);
   }
 
+  notFound(message, url) {
+    return this.status(404).view("errors/error", {
+      code: 404,
+      title: "Not Found",
+      message: `${message}`,
+      backUrl: `${url}`,
+      backMessage: "Go Back",
+    });
+  }
+
   async validate(rules, defaults = {}) {
     return await validator(this.req, rules, defaults);
   }

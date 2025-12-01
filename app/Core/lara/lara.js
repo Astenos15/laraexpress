@@ -32,22 +32,22 @@ function createController(name) {
   
   export default class ${capitalize(controllerName)} extends BaseController {
   
-  index() {
+  async index() {
     this.send("Index method");
   }
-  show() {
+  async show() {
     this.send("Show method");
   }
-  create() {
+  async create() {
     this.send("Create method");
   }
-  store() {
+  async store() {
     this.send("Store method");
   }
-  update() {
+  async update() {
     this.send("Update method");
   }
-  destroy() {
+  async destroy() {
     this.send("Destroy method");
   }
 }
